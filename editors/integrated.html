@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nijimi · 集成编辑器</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      background:
+        repeating-linear-gradient(90deg, rgba(45,45,58,0.045) 0 2px, transparent 2px 140px),
+        radial-gradient(120vmax at 50% 38%, #dfe2e6 0%, #c2c7cd 45%, #9ba1ab 100%);
+      color: #3a3a40; font-size: 12.5px;
+    }
+    #viewport { position: absolute; inset: 0; }
+    #viewport canvas { display: block; }
+    .cmyk {
+      position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 5;
+      background: linear-gradient(90deg, #00a5c8, #c800a5, #a5c800, #3a3a3a);
+      opacity: 0.75;
+    }
+    #panel {
+      position: absolute; top: 16px; right: 16px; z-index: 10; width: 248px;
+      background: rgba(23, 20, 28, 0.92); border: 1px solid #3a3348;
+      border-radius: 8px; padding: 14px 16px 12px;
+      backdrop-filter: blur(6px); max-height: calc(100% - 32px); overflow-y: auto;
+    }
+    #panel h1 {
+      font-size: 12px; letter-spacing: 0.14em; color: #b8a888; font-weight: 600;
+      margin-bottom: 2px;
+    }
+    #panel .sub { color: #6a6272; font-size: 10.5px; margin-bottom: 12px; }
+    #panel .group { border-top: 1px solid #2e2839; padding: 10px 0 8px; }
+    #panel .group > label {
+      display: block; color: #7a7284; font-size: 10.5px; letter-spacing: 0.1em;
+      margin-bottom: 7px;
+    }
+    #panel .row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    #panel .row label { width: 76px; color: #a89c88; flex: none; font-size: 11px; }
+    #panel input[type="range"] { flex: 1; accent-color: #e8a34c; }
+    #panel .val { width: 38px; text-align: right; color: #7ec8c0; font-size: 11px; flex: none; }
+    #panel button {
+      font: inherit; color: #e8ddc8; background: #2e2839;
+      border: 1px solid #4a4356; border-radius: 6px;
+      padding: 5px 0; width: 100%; cursor: pointer; margin-top: 4px;
+      letter-spacing: 0.08em;
+    }
+    #panel button:hover { border-color: #e8a34c; }
+    #panel button.on { color: #17141c; background: #e8a34c; border-color: #e8a34c; font-weight: 700; }
+    #panel .foot { margin-top: 10px; color: #6a6272; font-size: 10px; }
+    #panel a { color: #b8a888; text-decoration: none; }
+    #panel a:hover { color: #e8a34c; }
+    #hud {
+      position: absolute; left: 16px; bottom: 12px; z-index: 10;
+      color: #6a6272; font-size: 10.5px; letter-spacing: 0.06em;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport"></div>
+  <div class="cmyk"></div>
+  <div id="panel">
+    <h1>集成编辑器 · INTEGRATED LAB</h1>
+    <div class="sub">完整场景 + 人物 · 调融合观感，参数回写主工程</div>
+    <div class="group">
+      <label>人物 / CHARACTER</label>
+      <div class="row"><label>朝向 Y</label><input id="rotY" type="range" min="-180" max="180" step="1" value="-135" /><span class="val" id="rotYVal">-135°</span></div>
+      <div class="row"><label>站位微调</label><input id="posX" type="range" min="-0.8" max="0.8" step="0.01" value="0" /><span class="val" id="posXVal">+0.00</span></div>
+      <div class="row"><label>Z 微调</label><input id="posZ" type="range" min="-0.8" max="0.8" step="0.01" value="0" /><span class="val" id="posZVal">+0.00</span></div>
+    </div>
+    <div class="group">
+      <label>灯光 / LIGHT（冷底暖光）</label>
+      <div class="row"><label>主光(暖)</label><input id="key" type="range" min="0" max="3" step="0.05" value="1.35" /><span class="val" id="keyVal">1.35</span></div>
+      <div class="row"><label>环境冷底</label><input id="hemi" type="range" min="0" max="2" step="0.05" value="1.00" /><span class="val" id="hemiVal">1.00</span></div>
+      <div class="row"><label>暮光(冷)</label><input id="moon" type="range" min="0" max="2" step="0.05" value="0.55" /><span class="val" id="moonVal">0.55</span></div>
+      <div class="row"><label>暖补光</label><input id="fill" type="range" min="0" max="12" step="0.1" value="6.00" /><span class="val" id="fillVal">6.0</span></div>
+    </div>
+    <div class="group">
+      <label>后期 / POST</label>
+      <div class="row"><label>Bloom</label><input id="bloom" type="range" min="0" max="1.5" step="0.02" value="0.62" /><span class="val" id="bloomVal">0.62</span></div>
+      <div class="row"><label>曝光</label><input id="exposure" type="range" min="0.5" max="2.5" step="0.05" value="1.30" /><span class="val" id="exposureVal">1.30</span></div>
+      <button id="toggleNpr" class="on">NPR 手法：开</button>
+      <button id="toggleBloom">Bloom 通路：开</button>
+    </div>
+    <div class="group">
+      <label>视窗 / VIEW</label>
+      <button id="resetView">复位视角</button>
+    </div>
+    <div class="foot"><a href="/">← 返回编辑器总览</a></div>
+  </div>
+  <div id="hud">拖拽平移 · 滚轮缩放 · 人物基准位 (2.35, 1.15) 朝向 -2.36</div>
+  <script type="module" src="/editors/integrated.ts"></script>
+</body>
+</html>

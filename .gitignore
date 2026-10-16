@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+*.tsbuildinfo
+.vite/
+
+# 资产语料（体积大 + 授权受限：只在本机流转，不进版本库）
+/assets/models/*
+!/assets/models/README.md
+/assets/refs/
+/screenshots/
+
+# 参考与研读材料（若有本地副本）
+/refs/
+/pre/
+
+# logs / env / os
+logs/
+*.log
+.env
+.env.*
+.DS_Store
+.idea/
+*.sw?

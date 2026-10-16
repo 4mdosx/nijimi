@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nijimi · 人物编辑器</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      background: #c4c4c8; color: #3a3a40; font-size: 12.5px;
+    }
+    #viewport { position: absolute; inset: 0; }
+    #viewport canvas { display: block; }
+
+    /* CMYK 色带（与主工程一致的 UI 语言） */
+    .cmyk {
+      position: absolute; top: 0; left: 0; right: 0; height: 4px; z-index: 5;
+      background: linear-gradient(90deg, #00a5c8, #c800a5, #a5c800, #3a3a3a);
+      opacity: 0.75;
+    }
+
+    #panel {
+      position: absolute; top: 16px; right: 16px; z-index: 10; width: 252px;
+      background: rgba(23, 20, 28, 0.92); border: 1px solid #3a3348;
+      border-radius: 8px; padding: 14px 16px 12px;
+      backdrop-filter: blur(6px); max-height: calc(100% - 32px); overflow-y: auto;
+    }
+    #panel h1 {
+      font-size: 12px; letter-spacing: 0.14em; color: #b8a888; font-weight: 600;
+      border-bottom: 1px dashed #3a3348; padding-bottom: 8px; margin-bottom: 10px;
+    }
+    .row { display: flex; align-items: center; gap: 8px; margin: 7px 0; }
+    .row label { flex: 0 0 72px; color: #9a8f7e; font-size: 11px; letter-spacing: 0.05em; }
+    .row input[type="range"] { flex: 1; accent-color: #e8a34c; height: 3px; }
+    .row .val { flex: 0 0 44px; text-align: right; color: #e8a34c; font-variant-numeric: tabular-nums; }
+    .row select, .row button {
+      flex: 1; background: #241f2e; color: #e8ddc8; border: 1px solid #4a4258;
+      border-radius: 4px; padding: 4px 6px; font: inherit; cursor: pointer;
+    }
+    .row button.on { border-color: #e8a34c; color: #e8a34c; }
+    .group { border-top: 1px dashed #3a3348; margin-top: 10px; padding-top: 8px; }
+    .group .title { font-size: 10.5px; color: #7a7062; letter-spacing: 0.12em; margin-bottom: 4px; }
+    #stats { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #3a3348; color: #7a7062; font-size: 10.5px; line-height: 1.7; }
+    #boneinfo { color: #e8a34c; }
+    #hint {
+      position: absolute; left: 16px; bottom: 14px; color: #6a6052; font-size: 11px;
+      letter-spacing: 0.06em; z-index: 5;
+    }
+    /* 警戒条纹（装饰，呼应设备栏） */
+    .hazard {
+      position: absolute; left: 16px; top: 16px; width: 120px; height: 8px; z-index: 5; opacity: 0.5;
+      background: repeating-linear-gradient(45deg, #e8a34c 0 8px, #241f2e 8px 16px);
+      border-radius: 2px;
+    }
+    /* 材质契约面板：把契约版资产里那份「材质表」摊开给人看，
+       并带一个**材质查看器**（下拉选材质 → 材质球 + 契约字段 + 通道缩略图） */
+    #charterPanel {
+      position: absolute; left: 16px; top: 36px; z-index: 8; width: 432px;
+      max-height: calc(100% - 82px); overflow-y: auto;
+      background: rgba(23, 20, 28, 0.92); border: 1px solid #3a3348; border-radius: 8px;
+      padding: 10px 12px 8px; backdrop-filter: blur(6px);
+    }
+    #charterPanel h2 {
+      font-size: 10.5px; letter-spacing: 0.14em; color: #b8a888; font-weight: 600;
+      border-bottom: 1px dashed #3a3348; padding-bottom: 6px; margin-bottom: 6px;
+    }
+    #charterMeta { font-size: 10px; color: #7a7062; line-height: 1.6; margin-bottom: 8px; }
+    #charterMeta b { color: #e8a34c; font-weight: 600; }
+    #charterMeta .lic { color: #a06a6a; }
+    #charterPanel table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    #charterPanel th {
+      color: #7a7062; text-align: left; font-weight: 400; font-size: 9.5px;
+      border-bottom: 1px dashed #3a3348; padding: 2px 4px 3px; letter-spacing: 0.06em;
+    }
+    #charterPanel td { padding: 2px 4px; border-bottom: 1px solid #221d2a; color: #cfc4ae; }
+    #charterPanel tr.unbound td { color: #d86a6a; }
+    #charterPanel tbody tr { cursor: pointer; }
+    #charterPanel tbody tr:hover td { background: #2b2536; }
+    #charterPanel tbody tr.sel td { background: #3a2f22; color: #f0dcb4; }
+    #charterPanel td.num { text-align: right; font-variant-numeric: tabular-nums; color: #8a8070; }
+    .role { display: inline-block; padding: 0 5px; border-radius: 3px; font-size: 9.5px; letter-spacing: 0.04em; }
+    .role[data-r="face"] { background: #3b2b1d; color: #e8a34c; }
+    .role[data-r="skin"] { background: #3a2724; color: #e8a08c; }
+    .role[data-r="hair"] { background: #2c2a3c; color: #b0a4e0; }
+    .role[data-r="cloth"] { background: #232c2e; color: #78c0c0; }
+    .role[data-r="glow"], .role[data-r="add"] { background: #3a3320; color: #e8d47c; }
+    .role[data-r="eye"], .role[data-r="mouth"], .role[data-r="decal"] { background: #1f2c3a; color: #7cb0e8; }
+    .role[data-r="metal"] { background: #33302a; color: #d8c8a0; }
+    .role[data-r="outline"] { background: #2a2030; color: #c08cd8; }
+    .role[data-r="misc"] { background: #2a2a2a; color: #9a9a9a; }
+
+    /* ---- 材质查看器 ---- */
+    #matViewer { border-top: 1px dashed #3a3348; padding-top: 8px; margin-bottom: 8px; }
+    #matViewer .title { font-size: 10.5px; color: #7a7062; letter-spacing: 0.12em; margin-bottom: 5px; }
+    #matViewer .row { margin: 5px 0; }
+    #matViewer select {
+      width: 100%; background: #241f2e; color: #e8ddc8; border: 1px solid #4a4258;
+      border-radius: 4px; padding: 4px 6px; font: inherit; cursor: pointer;
+    }
+    #matViewer .row.btns { display: flex; gap: 6px; }
+    #matViewer .row.btns button {
+      flex: 1; background: #241f2e; color: #cfc4ae; border: 1px solid #4a4258;
+      border-radius: 4px; padding: 3px 6px; font: inherit; font-size: 10px; cursor: pointer;
+    }
+    #matViewer .row.btns button.on { border-color: #e8a34c; color: #e8a34c; }
+    #matStage { display: flex; gap: 10px; align-items: flex-start; margin-top: 7px; }
+    /* 材质球：中性灰径向底 —— 深色件与浅色件都能读出来 */
+    #matBallWrap {
+      flex: 0 0 200px; width: 200px; height: 142px; border-radius: 5px; overflow: hidden;
+      border: 1px solid #3a3348; cursor: grab;
+      background: radial-gradient(circle at 50% 32%, #74767e 0%, #4c4e56 55%, #33353c 100%);
+    }
+    #matBallWrap:active { cursor: grabbing; }
+    #matBall { display: block; width: 200px; height: 142px; }
+    #matFacts { flex: 1; font-size: 10px; line-height: 1.75; color: #cfc4ae; min-width: 0; }
+    #matFacts .k { color: #7a7062; }
+    #matFacts .warn { color: #d86a6a; }
+    #matFacts .ok { color: #7cc08c; }
+    #matChannels { margin-top: 7px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .chan { width: 62px; }
+    .chan canvas {
+      width: 62px; height: 62px; display: block; border: 1px solid #3a3348; border-radius: 4px;
+      background: repeating-conic-gradient(#2a2a30 0 25%, #232329 0 50%) 0 0/12px 12px;
+      image-rendering: pixelated;
+    }
+    .chan .lab { font-size: 9px; color: #8a8070; margin-top: 2px; line-height: 1.35; }
+    .chan .lab b { color: #e8a34c; font-weight: 600; }
+    #hint { color: #57503f; }
+  </style>
+</head>
+<body>
+  <div class="cmyk"></div>
+  <div class="hazard"></div>
+  <div id="viewport"></div>
+
+  <div id="charterPanel">
+    <h2>材质契约 / MATERIAL CHARTER · 终末地核心</h2>
+    <div id="charterMeta">加载中…</div>
+
+    <div id="matViewer">
+      <div class="title">材质查看器 / MATERIAL VIEWER</div>
+      <div class="row"><select id="matSel"><option value="-1">（加载模型后可选）</option></select></div>
+      <div class="row btns">
+        <button id="matTrack" class="on">契约轨道</button>
+        <button id="matIso">隔离此材质</button>
+        <button id="matSpin" class="on">自转</button>
+      </div>
+      <div id="matStage">
+        <div id="matBallWrap"><canvas id="matBall" width="200" height="142"></canvas></div>
+        <div id="matFacts">—</div>
+      </div>
+      <div id="matChannels"></div>
+    </div>
+
+    <table id="charterTable"></table>
+  </div>
+
+  <div id="panel">
+    <h1>人物编辑器 · CHARACTER LAB</h1>
+
+    <div class="group">
+      <div class="title">模型 / MODEL</div>
+      <div class="row">
+        <label>角色</label>
+        <select id="model">
+          <option value="yelan" selected>夜兰（官方 PMX）</option>
+          <option value="witch">工装女巫（Chibi）</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>整体缩放</label>
+        <input id="scale" type="range" min="0.4" max="1.6" step="0.01" value="1" />
+        <span class="val" id="scaleVal">1.00</span>
+      </div>
+      <div class="row">
+        <label>朝向 Y</label>
+        <input id="rotY" type="range" min="-180" max="180" step="1" value="0" />
+        <span class="val" id="rotYVal">0°</span>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="title">骨架 / SKELETON</div>
+      <div class="row">
+        <button id="toggleSkel">显示骨架</button>
+        <button id="toggleJoints">关节点</button>
+      </div>
+      <div class="row">
+        <label>骨骼</label>
+        <select id="bone"><option value="-1">（选择骨骼…）</option></select>
+      </div>
+      <div id="boneinfo">未选中</div>
+    </div>
+
+    <div class="group">
+      <div class="title">材质 / MATERIAL</div>
+      <div class="row">
+        <label>模式</label>
+        <select id="matmode">
+          <option value="tex" selected>贴图</option>
+          <option value="track">契约轨道</option>
+          <option value="unlit">Unlit</option>
+          <option value="normal">法线</option>
+          <option value="wire">线框</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>SDF 调试</label>
+        <select id="sdfdbg">
+          <option value="0" selected>关</option>
+          <option value="1">阈值场 R/G</option>
+          <option value="2">最终明暗</option>
+          <option value="3">光照衰减</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="title">灯光 / LIGHT（棚拍 / 契约）</div>
+      <div class="row"><button id="lightMode">灯光：棚拍中性</button></div>
+      <div class="row"><label>主光(暖)</label><input id="key" type="range" min="0" max="4" step="0.05" value="1.35" /><span class="val" id="keyVal">1.35</span></div>
+      <div class="row"><label>主光方位</label><input id="keyAng" type="range" min="-180" max="180" step="1" value="0" /><span class="val" id="keyAngVal">0°</span></div>
+      <div class="row"><label>环境冷底</label><input id="hemi" type="range" min="0" max="2" step="0.05" value="1.05" /><span class="val" id="hemiVal">1.05</span></div>
+      <div class="row"><label>暮光(冷)</label><input id="moon" type="range" min="0" max="2" step="0.05" value="0.55" /><span class="val" id="moonVal">0.55</span></div>
+      <div class="row"><label>角色补光</label><input id="rim" type="range" min="0" max="8" step="0.1" value="2.6" /><span class="val" id="rimVal">2.6</span></div>
+    </div>
+
+    <div class="group">
+      <div class="title">后期 / POST</div>
+      <div class="row">
+        <label>Bloom</label>
+        <input id="bloom" type="range" min="0" max="2" step="0.02" value="0.62" />
+        <span class="val" id="bloomVal">0.62</span>
+      </div>
+      <div class="row">
+        <label>曝光</label>
+        <input id="exposure" type="range" min="0.4" max="2.5" step="0.05" value="1.3" />
+        <span class="val" id="exposureVal">1.30</span>
+      </div>
+    <div class="row">
+      <label>景深</label>
+      <input id="dof" type="range" min="0" max="0.03" step="0.001" value="0.008" />
+      <span class="val" id="dofVal">0.008</span>
+    </div>
+    <div class="row">
+      <button id="autorot">自动旋转</button>
+    </div>
+    </div>
+
+    <div id="stats">加载中…</div>
+  </div>
+
+  <div id="hint">拖拽旋转 · 滚轮缩放 · 右键平移 —— 材质查看器：下拉选材质 → 材质球 / 契约字段 / 终末地通道 · 「隔离此材质」在主视图只留该件</div>
+  <script type="module" src="/editors/character.ts"></script>
+</body>
+</html>

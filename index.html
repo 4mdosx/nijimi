@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>nijimi · 滲み · 渲染引擎编辑器</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      background: #17141c; color: #e8ddc8; font-size: 12.5px;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 52px 20px 64px;
+    }
+    .cmyk {
+      position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 5;
+      background: linear-gradient(90deg, #00a5c8, #c800a5, #a5c800, #3a3a3a);
+      opacity: 0.75;
+    }
+    .hazard {
+      width: 100%; max-width: 880px; height: 8px; margin-bottom: 30px;
+      background: repeating-linear-gradient(-45deg, #e8a34c 0 10px, #17141c 10px 20px);
+      opacity: 0.35; border-radius: 2px;
+    }
+    header { width: 100%; max-width: 880px; margin-bottom: 32px; }
+    header h1 { font-size: 19px; letter-spacing: 0.18em; color: #efe6d0; font-weight: 700; }
+    header h1 em { font-style: normal; color: #e8a34c; }
+    header p { margin-top: 8px; color: #8d8494; line-height: 1.7; }
+    header p b { color: #b8ad98; font-weight: 600; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; width: 100%; max-width: 880px; }
+    @media (max-width: 720px) { .cards { grid-template-columns: 1fr; } }
+    a.card {
+      display: block; text-decoration: none; color: inherit;
+      background: #1d1926; border: 1px solid #3a3348; border-radius: 12px;
+      padding: 18px 18px 14px; transition: border-color .15s, transform .15s;
+    }
+    a.card:hover { border-color: #e8a34c; transform: translateY(-3px); }
+    .card .no { font-size: 11px; letter-spacing: 0.2em; color: #e8a34c; margin-bottom: 8px; }
+    .card h3 { font-size: 15px; color: #efe6d0; margin-bottom: 8px; font-weight: 700; letter-spacing: 0.04em; }
+    .card p { color: #8d8494; line-height: 1.7; font-size: 11.5px; min-height: 58px; }
+    .card .path {
+      margin-top: 10px; font-size: 10.5px; color: #6a6272;
+      border-top: 1px dashed #2e2839; padding-top: 8px;
+    }
+    footer { margin-top: 26px; color: #6a6272; font-size: 11px; letter-spacing: 0.06em; }
+    footer a { color: #b8a888; text-decoration: none; border-bottom: 1px dashed #4a4356; }
+    footer a:hover { color: #e8a34c; }
+  </style>
+</head>
+<body>
+  <div class="cmyk"></div>
+
+  <header>
+    <h1>nijimi <em>·</em> 滲み <em>·</em> 编辑器</h1>
+    <p>
+      nijimi（滲み），字面是「墨在纸上洇开」。轻量级 diorama 渲染引擎的四个生产工具，标定值回写引擎本体（<b>src/*</b>）。
+      人物 = 单模型；姿势/动画 = 角色动作库；场景 = 纯环境；集成 = 内容包 × 角色融合。
+      消费方（游戏侧）直接 import 同一套引擎，读到的就是这里看到的东西。
+    </p>
+  </header>
+
+  <div class="hazard"></div>
+
+  <div class="cards">
+    <a class="card" href="/editors/character.html">
+      <div class="no">01 · CHARACTER</div>
+      <h3>人物编辑器</h3>
+      <p>单人模型渲染调试：骨架 / 关节点 / 材质四模式（贴图·Unlit·法线·线框）/ 灯光曝光 Bloom。夜兰的眼睛、朝向、PMX 修正都在这里标定。</p>
+      <div class="path">/editors/character.html</div>
+    </a>
+    <a class="card" href="/editors/pose.html">
+      <div class="no">02 · POSE</div>
+      <h3>姿势实验台</h3>
+      <p>动作库生产工具：26 个语义槽位（前俯后仰 / 左右转 / 左右侧倾）摆姿势 → 存本地库 → 排成关键帧动作串播放。呼吸/轻摆叠加层让静止姿势活起来。</p>
+      <div class="path">/editors/pose.html</div>
+    </a>
+    <a class="card" href="/editors/scene.html">
+      <div class="no">03 · SCENE</div>
+      <h3>场景编辑器</h3>
+      <p>纯环境调试（无人物）：房间 + 工业簇 + 粒子，灯光四路 / Bloom / 曝光 / NPR 手法开关，主工程同款视窗 rig。createStage(container, { pack, withCharacter: false })。</p>
+      <div class="path">/editors/scene.html</div>
+    </a>
+    <a class="card" href="/editors/integrated.html">
+      <div class="no">04 · INTEGRATED</div>
+      <h3>集成编辑器</h3>
+      <p>完整场景 + 人物的融合调试：人物朝向 / 站位微调 + 全套灯光后期滑杆。内容包 × 角色 × 后期全链调试，标定值回写 stage.ts / character.ts。</p>
+      <div class="path">/editors/integrated.html</div>
+    </a>
+  </div>
+
+  <footer>
+    引擎本体 <span style="color:#4a4356">src/index.ts</span> &nbsp;·&nbsp; 资产管线 <span style="color:#4a4356">pipeline/pmx2glb.mjs</span> &nbsp;·&nbsp; 契约 <span style="color:#4a4356">pipeline/charter-rules.mjs</span>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "name": "nijimi",
+  "version": "0.1.0",
+  "description": "nijimi（滲み）·。轻量级 diorama 渲染引擎（three.js）：契约化角色资产 + NPR 着色 + 编辑器 + 资产管线",
+  "type": "module",
+  "license": "ISC",
+  "exports": {
+    ".": "./src/index.ts",
+    "./vite": "./vite.mjs"
+  },
+  "files": [
+    "src/index.ts",
+    "src/**/*.ts",
+    "vite.mjs"
+  ],
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc",
+    "charter": "node pipeline/charter-glb.mjs --all",
+    "rig": "node pipeline/rig-glb.mjs",
+    "anim-audit": "node pipeline/anim-audit.mjs",
+    "demo-anim": "node pipeline/make-demo-anim.mjs",
+    "glb-audit": "node pipeline/glb-audit.mjs"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@types/three": "^0.186.0",
+    "mmd-parser": "^1.1.4",
+    "pngjs": "^7.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
+  }
+}
